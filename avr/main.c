@@ -36,9 +36,7 @@ int main(void) {
     // Initialise everything
     init();
 
-    uart_init();
-
-    for (;;) {
+    while (1) {
         wait_for_str("GNU GRUB");
 
         _delay_ms(2000);
