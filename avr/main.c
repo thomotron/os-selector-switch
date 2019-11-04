@@ -1,51 +1,40 @@
+// This file is written to correspond with the
+// following pinout:
+//
+//              ATTiny85
+//             .---v---.
+// B5   RESET -| 1   8 |- Vcc
+// B3  SWITCH -| 2   7 |- SCK  B2
+// B4         -| 3   6 |- TX   B1
+//        GND -| 4   5 |- RX   B0
+//             *-------*
+
 #include <avr/io.h>
 #include <util/delay.h>
 
 #define BAUDRATE 9600
 
-static char uart_getc(void) {
-    while ((UCSRA & (1<<RXC)) == 0);
-    return UDR;
-}
+// Buffer to store each character read in from serial
+char serial_buffer[64];
 
-static void uart_putc(char c) {
-    while ((UCSRA & (1<<UDRE)) == 0);
-    UDR = c;
-}
+void init()
+{
+    // Set DDR register
+    // (1 = out, 0 = in)
+    DDRB = 0b010000;
 
-static void uart_init(void) {
-    UBRRH = (F_CPU/(16L*BAUDRATE)-1) >> 8;
-    UBRRL = (F_CPU/(16L*BAUDRATE)-1) & 0xFF;
-    UCSRC = 3<<UCSZ0;
-    UCSRB = (1<<RXEN) | (1<<TXEN);
-}
-
-static int get_switch_state(void) {
-    return PINB & 0b00000011;
-}
-
-static int wait_for_str(const char *s) {
-    const char *p = s;
-    char c;
-
-    while (*p != '\0') {
-        c = uart_getc();
-
-        if (c == *p) {
-            ++p;
-        } else {
-            p = s;
-            if (c == *p) {
-                ++p;
-            }
-        }
-    }
-
-    return 0;
+    // Set up the USI for receiving UART
+    // USICR7:   Enable start condition interrupt
+    // USICR6:   Disable counter overflow interrupt
+    // USICR5-4: Select 3-wire mode
+    // USICR3-1: Use external clock on rising edge
+    // USICR0:   Disable clock generation
+    USICR = 0b10011000;
 }
 
 int main(void) {
-    PORTB |= 0b00000011;
+    // Initialise everything
+    init();
 
     uart_init();
 
